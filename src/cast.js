@@ -128,12 +128,20 @@ async function buildPerson(file, ual) {
   for (const c of ual.animations) { const a = mixer.clipAction(c); a.play(); a.setEffectiveWeight(0); actions[c.name] = a; }
   src.updateMatrixWorld(true);
   const retarget = new Retargeter(src, model);
-  // animations propres au modèle (Wave, Interact, Walk…)
-  const own = new THREE.AnimationMixer(model);
-  const ownActions = {};
-  for (const c of g.animations) { const n = c.name.split('|').pop(); const a = own.clipAction(c); a.play(); a.setEffectiveWeight(0); ownActions[n] = a; }
+  // animations propres au modèle (Wave, Interact, Walk…), échantillonnées directement : un AnimationMixer ne réécrit
+  // un os que si sa valeur a changé depuis l'image précédente, or le transfert UAL vient de les écraser
+  const ownClips = {};
+  for (const c of g.animations) {
+    const tracks = [];
+    for (const tr of c.tracks) {
+      const [node, prop] = tr.name.split('.');
+      const bone = model.getObjectByName(node);
+      if (bone && prop === 'quaternion') tracks.push({ bone, interp: tr.createInterpolant() });
+    }
+    ownClips[c.name.split('|').pop()] = { duration: c.duration, tracks };
+  }
   const bones = retarget.bones;
-  const clipDur = (n) => (actions[n] ?? ownActions[n.replace(/^own:/, '')])?.getClip().duration ?? 1;
+  const clipDur = (n) => (n.startsWith('own:') ? ownClips[n.slice(4)]?.duration : actions[n]?.getClip().duration) ?? 1;
 
   return {
     root, model, bones, retarget, clipDur,
@@ -141,30 +149,35 @@ async function buildPerson(file, ual) {
     // la pose UAL (masque « arms » : bras seulement, ex. saluer en restant assis)
     pose(layers) {
       for (const a of Object.values(actions)) a.setEffectiveWeight(0);
-      for (const a of Object.values(ownActions)) a.setEffectiveWeight(0);
-      let ownW = 0, ownMask = null;
+      let ownW = 0, ownMask = null, ownClip = null, ownTime = 0;
       for (const [n, time, w, mask] of layers) {
         if (w <= 0) continue;
-        const isOwn = n.startsWith('own:');
-        const a = isOwn ? ownActions[n.slice(4)] : actions[n];
+        if (n.startsWith('own:')) {
+          ownClip = ownClips[n.slice(4)];
+          if (!ownClip) continue;
+          const d = ownClip.duration;
+          ownTime = ((time % d) + d) % d;
+          ownW += w;
+          ownMask = mask === 'arms' ? /Shoulder|Arm|Wrist|Index|Middle|Ring|Pinky|Thumb/ : null;
+          continue;
+        }
+        const a = actions[n];
         if (!a) continue;
         a.enabled = true;
-        a.setEffectiveWeight(isOwn ? 1 : w);
+        a.setEffectiveWeight(w);
         const d = a.getClip().duration;
         a.time = /Loop|Idle|Walk|Run|Wave/.test(n) ? ((time % d) + d) % d : THREE.MathUtils.clamp(time, 0, d - 1e-3);
-        if (isOwn) { ownW += w; ownMask = mask === 'arms' ? /Shoulder|Arm|Wrist|Index|Middle|Ring|Pinky|Thumb/ : null; }
       }
       mixer.update(0);
       retarget.apply();
-      if (ownW > 0) {
-        // mélange : pose UAL déjà appliquée → on mélange vers la pose d'origine
-        const saved = retarget.items.map((it) => it.bone.quaternion.clone());
-        const hips = bones.get('Hips').position.clone();
-        own.update(0);
-        const w = Math.min(1, ownW);
-        retarget.items.forEach((it, i) => { const target = it.bone.quaternion.clone(); it.bone.quaternion.copy(saved[i]); if (!ownMask || ownMask.test(it.bone.name)) it.bone.quaternion.slerp(target, w); });
-        const hp = bones.get('Hips').position;
-        hp.lerpVectors(hips, hp.clone(), ownMask ? 0 : w);
+      if (ownW > 0 && ownClip) {
+        // mélange : de la pose UAL vers la pose d'origine, os par os (les os non animés gardent la pose UAL)
+        const w = Math.min(1, ownW), q = new THREE.Quaternion();
+        for (const { bone, interp } of ownClip.tracks) {
+          if (ownMask && !ownMask.test(bone.name)) continue;
+          q.fromArray(interp.evaluate(ownTime));
+          bone.quaternion.slerp(q, w);
+        }
       }
     },
     // mains sur le clavier (frappe) : IK des deux bras vers des cibles monde
@@ -194,7 +207,7 @@ async function buildPerson(file, ual) {
   };
 }
 
-export const PEOPLE = { sales1: 'sales_woman', sales2: 'sales_man', dev1: 'dev_man', dev2: 'dev_woman', dev3: 'dev_woman2' };
+export const PEOPLE = { sales1: 'sales_woman', sales2: 'sales_man', dev1: 'dev_man', dev2: 'dev_woman', dev3: 'dev_man2' };
 
 export async function buildCast(set) {
   const ual = await gltf.loadAsync('assets/chars/ual.glb');

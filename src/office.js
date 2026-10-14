@@ -300,9 +300,8 @@ export async function buildOffice() {
     };
     const I = new THREE.Matrix4();
     for (const m of all) scan(m.geometry, I);
-    // les chaises des commerciaux bougent : elles sont gérées à part (obstacles ajoutés au moment voulu)
+    // les fauteuils bougent : ils sont gérés à part (obstacles ajoutés par la planification, story.js)
     root.updateMatrixWorld(true);
-    for (const [k, c] of Object.entries(set.chairs)) if (!k.startsWith('sales')) c.traverse((o) => { if (o.isMesh) scan(o.geometry, o.matrixWorld); });
     for (const s of set.screens) s.obj.traverse((o) => { if (o.isMesh && o !== s.plane) scan(o.geometry, o.matrixWorld); });
     // murs : bande pleine (porte exceptée)
     for (let x = -3.05; x <= 3.05; x += cell / 2) for (let z = -2.06; z <= -1.98; z += cell / 2) mark(x, 0.3, z);
