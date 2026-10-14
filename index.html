@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Made to Measure · Beyond Data</title>
+    <link rel="icon" href="assets/brand/beyond-data-mark.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root { --navy: #030649; --navy2: #2d2f67; --grey: #abacc2; --light: #e6e6f4; --purple: #850fea; --cyan: #4eeaff; --green: #2ce3a0; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: var(--navy); color: #fff; font-family: Urbanist, system-ui, sans-serif; }
+      #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+      #panel { position: fixed; left: 16px; top: 16px; max-width: 380px; padding: 22px 22px 18px; border-radius: 18px;
+        background: rgba(3, 6, 73, 0.86); backdrop-filter: blur(8px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); }
+      #panel img.logo { width: 190px; display: block; margin-bottom: 14px; }
+      h1 { margin: 0 0 4px; font-size: 30px; font-weight: 800; letter-spacing: -0.01em; }
+      h1 span { background: linear-gradient(90deg, var(--purple), var(--cyan), var(--green)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .sub { margin: 0 0 16px; color: var(--light); font-size: 15px; line-height: 1.45; }
+      .buttons { display: flex; flex-direction: column; gap: 8px; }
+      button { font: 700 16px Urbanist, system-ui, sans-serif; padding: 13px 16px; border-radius: 999px; border: 0; cursor: pointer;
+        background: linear-gradient(90deg, var(--cyan), var(--green)); color: var(--navy); }
+      button.secondary { background: transparent; color: #fff; box-shadow: inset 0 0 0 2px var(--navy2); }
+      button:disabled { opacity: 0.4; cursor: default; }
+      button[hidden] { display: none; }
+      .status { margin: 14px 0 0; font-size: 14px; color: var(--grey); }
+      .status.error { color: #ff9b7a; }
+      details { margin-top: 12px; font-size: 14px; color: var(--light); }
+      summary { cursor: pointer; color: var(--cyan); }
+      .credit { margin: 12px 0 0; font-size: 11px; color: var(--grey); line-height: 1.4; }
+      a { color: var(--cyan); }
+      @media (max-width: 600px) { #panel { left: 16px; right: 16px; top: auto; bottom: 16px; max-width: none; } }
+      #ar-overlay { position: fixed; inset: 0; pointer-events: none; font: 600 15px/1.4 Urbanist, system-ui, sans-serif; }
+      #ar-hint { position: absolute; top: max(16px, env(safe-area-inset-top)); left: 16px; right: 16px; margin: 0; padding: 10px 14px;
+        background: rgba(3, 6, 73, 0.78); color: #fff; border-radius: 14px; text-align: center; }
+      #ar-hint:empty { display: none; }
+      .ar-buttons { position: absolute; bottom: max(20px, env(safe-area-inset-bottom)); left: 0; right: 0; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 0 12px; }
+      .ar-buttons button { pointer-events: auto; min-width: 48px; padding: 12px 14px; font-size: 15px; }
+      .ar-buttons button.secondary { background: rgba(3, 6, 73, 0.78); }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <main id="panel">
+      <img class="logo" src="assets/brand/beyond-data-logo.svg" alt="Beyond Data" />
+      <h1>Made to <span>Measure</span></h1>
+      <p class="sub">A two-minute story in augmented reality: where we come from, where we are, and why the next move is yours.</p>
+      <div class="buttons">
+        <button id="enter-ar" disabled>Place it in my room</button>
+        <button id="enter-vr" class="secondary" disabled>Watch in VR</button>
+        <button id="play-2d" class="secondary">Preview on this screen</button>
+      </div>
+      <p id="status" class="status">Loading…</p>
+      <details>
+        <summary>How to watch</summary>
+        <ul>
+          <li><b>Phone</b>: Chrome on Android. Point at a table, tap to place the office, then walk around it. Sound on!</li>
+          <li>Things happen all around you: look up, left, right and down.</li>
+          <li><b>Quest</b>: the film starts when you enter. <b>A</b> replays, <b>right stick</b> resizes the model.</li>
+        </ul>
+      </details>
+      <p class="credit">Characters: Quaternius (CC0) · office &amp; city: Kenney (CC0) · music: Kevin MacLeod, incompetech.com (CC BY 4.0) · voice: ElevenLabs</p>
+    </main>
+    <div id="ar-overlay" hidden>
+      <p id="ar-hint"></p>
+      <div class="ar-buttons">
+        <button id="ar-smaller" class="secondary" aria-label="Smaller">−</button>
+        <button id="ar-bigger" class="secondary" aria-label="Bigger">+</button>
+        <button id="ar-move" class="secondary">Move</button>
+        <button id="ar-replay">Replay</button>
+        <button id="ar-exit" class="secondary">Exit</button>
+      </div>
+    </div>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
